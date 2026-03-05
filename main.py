@@ -7,12 +7,12 @@ chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
 
 PRECIOS_CLAVE = [
-    (72000, 0.05, "Entrada inicial — zona de testeo"),
-    (70000, 0.10, "Soporte psicológico — acumular"),
+    (72000, 0.05, "Entrada inicial"),
+    (70000, 0.10, "Soporte psicológico"),
     (65000, 0.10, "Zona de interés medio"),
-    (60000, 0.20, "Zona fuerte — mayor acumulación"),
-    (58000, 0.10, "Soporte técnico relevante"),
-    (55000, 0.20, "Zona de máxima acumulación"),
+    (60000, 0.20, "Zona fuerte"),
+    (58000, 0.10, "Soporte técnico"),
+    (55000, 0.20, "Máxima acumulación"),
 ]
 PRECIO_MEDIO_OBJETIVO = 61200
 
@@ -39,44 +39,33 @@ def get_market_data():
     except Exception:
         return None, None, None
 
-def señal_crypto(cambio_24h, precio_actual, media_movil=None):
-    if media_movil:
-        if precio_actual > media_movil and cambio_24h > 1:
-            return "🟢 COMPRA"
-        elif precio_actual < media_movil and cambio_24h < -1:
-            return "🔴 VENTA"
-        else:
-            return "🟡 NEUTRAL"
-    else:
-        if cambio_24h > 2:
-            return "🟢 COMPRA"
-        elif cambio_24h < -2:
-            return "🔴 VENTA"
-        else:
-            return "🟡 NEUTRAL"
+def zona_btc_activa(btc_actual):
+    """Devuelve la zona del plan más cercana y su info."""
+    for precio, pct, desc in PRECIOS_CLAVE:
+        distancia = ((btc_actual - precio) / precio) * 100
+        if -2 <= distancia <= 3:
+            return f"🎯 En zona `${precio:,}` → invertir *{pct*100:.0f}%* capital\n   ↳ {desc}"
+        elif -8 <= distancia < -2:
+            return f"📍 Aprox. a `${precio:,}` ({pct*100:.0f}% capital) — faltan {abs(distancia):.1f}%"
+    # Ninguna zona activa, mostrar la próxima por debajo
+    for precio, pct, desc in PRECIOS_CLAVE:
+        if btc_actual > precio:
+            distancia = ((btc_actual - precio) / precio) * 100
+            return f"⏳ Próxima zona: `${precio:,}` ({pct*100:.0f}% capital) — {distancia:+.1f}% lejos"
+    return "⏳ BTC por encima de todas las zonas del plan"
+
+def barra_sentimiento(valor):
+    filled = round(valor / 10)
+    return "█" * filled + "░" * (10 - filled)
 
 def traducir_sentimiento(texto):
     return {
-        "Extreme Fear": "Miedo Extremo",
-        "Fear": "Miedo",
-        "Neutral": "Neutral",
-        "Greed": "Codicia",
-        "Extreme Greed": "Codicia Extrema",
+        "Extreme Fear": "Miedo Extremo 😱",
+        "Fear": "Miedo 😨",
+        "Neutral": "Neutral 😐",
+        "Greed": "Codicia 😏",
+        "Extreme Greed": "Codicia Extrema 🤑",
     }.get(texto, texto)
-
-def alerta_estrategia(btc_actual):
-    alertas = []
-    for precio, pct, descripcion in PRECIOS_CLAVE:
-        distancia = ((btc_actual - precio) / precio) * 100
-        if -2 <= distancia <= 3:
-            alertas.append(
-                f"   🎯 *Zona activa* ${precio:,} ({pct*100:.0f}% capital) — {descripcion}"
-            )
-        elif -8 <= distancia < -2:
-            alertas.append(
-                f"   📍 Aproximándose a ${precio:,} — {descripcion} ({distancia:+.1f}%)"
-            )
-    return alertas
 
 def main():
     if not tg_token or not chat_id:
@@ -87,98 +76,85 @@ def main():
         sys.exit(1)
 
     try:
-        # Media Móvil 
         precios_7d = [p[1] for p in hist['prices']]
         media_movil_btc = sum(precios_7d) / len(precios_7d)
 
-        # Sentimiento
         sentimiento_valor = int(fg['value'])
         sentimiento_texto = traducir_sentimiento(fg['value_classification'])
 
-        # Precios
         btc = prices['bitcoin']
         eth = prices['ethereum']
         sol = prices['solana']
         bnb = prices['binancecoin']
         xrp = prices['ripple']
-
         btc_actual = btc['usd']
-
-        # Señales
-        señal_btc = señal_crypto(btc['usd_24h_change'], btc_actual, media_movil_btc)
-        señal_eth = señal_crypto(eth['usd_24h_change'], eth['usd'])
-        señal_sol = señal_crypto(sol['usd_24h_change'], sol['usd'])
-        señal_bnb = señal_crypto(bnb['usd_24h_change'], bnb['usd'])
-        señal_xrp = señal_crypto(xrp['usd_24h_change'], xrp['usd'])
 
         tendencia_btc = "Alcista 🚀" if btc_actual > media_movil_btc else "Bajista 📉"
         dist_objetivo = ((btc_actual - PRECIO_MEDIO_OBJETIVO) / PRECIO_MEDIO_OBJETIVO) * 100
+        barra = barra_sentimiento(sentimiento_valor)
+        info_zona = zona_btc_activa(btc_actual)
 
-        # Alertas de estrategia
-        alertas = alerta_estrategia(btc_actual)
-
-        # Análisis IA
         if sentimiento_valor < 25 and "Bajista" in tendencia_btc:
-            analisis = "Miedo extremo y tendencia bajista. Condiciones óptimas para ejecutar zonas de acumulación de su plan."
+            analisis = "Miedo extremo con tendencia bajista. Condiciones óptimas para ejecutar las zonas de acumulación del plan."
         elif sentimiento_valor < 40 and btc_actual <= 65000:
-            analisis = "Miedo en el mercado con BTC en zona estratégica. Evalúe ejecutar entradas según su plan de acumulación."
+            analisis = "Miedo en el mercado con BTC en zona estratégica. Evalúe ejecutar entradas según su plan."
         elif sentimiento_valor > 70:
-            analisis = "Codicia elevada en el mercado. Evite compras impulsivas. Mantenga la disciplina de su estrategia."
+            analisis = "Codicia elevada. Evite compras impulsivas y mantenga la disciplina de su estrategia."
         elif btc_actual > media_movil_btc:
-            analisis = "Tendencia alcista activa. Si no ha completado sus entradas, espere correcciones a zonas de su plan."
+            analisis = "Tendencia alcista activa. Si no completó sus entradas, espere correcciones a las zonas del plan."
         else:
-            analisis = "Mercado en equilibrio. Continúe el DCA semanal y respete los niveles de su estrategia definida."
+            analisis = "Mercado en equilibrio. Continúe el DCA semanal y respete los niveles definidos."
 
-       
         msg = (
-            "🛡️ *CryptoSentinel Ultra — Reporte Diario 2026* 🛡️\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🛡️  *CryptoSentinel Ultra*\n"
+            "_Reporte Diario 2026_\n\n"
 
-            "📊 *MERCADO CRIPTO*\n\n"
-            f"₿ *Bitcoin (BTC)*\n"
-            f"   Precio: ${btc_actual:,.2f}  ({btc['usd_24h_change']:+.2f}%)\n"
-            f"   Tendencia MA7: {tendencia_btc}\n"
-            f"   Señal: {señal_btc}\n\n"
-            f"🔷 *Ethereum (ETH)*\n"
-            f"   Precio: ${eth['usd']:,.2f}  ({eth['usd_24h_change']:+.2f}%)\n"
-            f"   Señal: {señal_eth}\n\n"
-            f"🌐 *Solana (SOL)*\n"
-            f"   Precio: ${sol['usd']:,.2f}  ({sol['usd_24h_change']:+.2f}%)\n"
-            f"   Señal: {señal_sol}\n\n"
-            f"🟡 *BNB*\n"
-            f"   Precio: ${bnb['usd']:,.2f}  ({bnb['usd_24h_change']:+.2f}%)\n"
-            f"   Señal: {señal_bnb}\n\n"
-            f"💧 *XRP*\n"
-            f"   Precio: ${xrp['usd']:,.2f}  ({xrp['usd_24h_change']:+.2f}%)\n"
-            f"   Señal: {señal_xrp}\n\n"
+            "📊  *MERCADO EN TIEMPO REAL*\n\n"
 
-            "━━━━━━━━━━━━━━━━━━━━━━\n"
-            "📋 *ESTRATEGIA BEARMARKET 2026*\n\n"
-            f"   Precio objetivo medio: ${PRECIO_MEDIO_OBJETIVO:,}\n"
-            f"   BTC actual vs objetivo: {dist_objetivo:+.1f}%\n\n"
-            "   *Zonas de compra (75% capital):*\n"
+            f"₿  *Bitcoin*\n"
+            f"   `${btc_actual:>12,.2f}`   {btc['usd_24h_change']:+.2f}%\n"
+            f"   MA7: {tendencia_btc}\n\n"
+
+            f"🔷  *Ethereum*\n"
+            f"   `${eth['usd']:>12,.2f}`   {eth['usd_24h_change']:+.2f}%\n\n"
+
+            f"🌐  *Solana*\n"
+            f"   `${sol['usd']:>12,.2f}`   {sol['usd_24h_change']:+.2f}%\n\n"
+
+            f"🟡  *BNB*\n"
+            f"   `${bnb['usd']:>12,.2f}`   {bnb['usd_24h_change']:+.2f}%\n\n"
+
+            f"💧  *XRP*\n"
+            f"   `${xrp['usd']:>12,.4f}`   {xrp['usd_24h_change']:+.2f}%\n\n"
+
+            "📋  *ESTRATEGIA BEARMARKET 2026*\n"
+            f"  Objetivo precio medio: `${PRECIO_MEDIO_OBJETIVO:,}`\n"
+            f"  BTC vs objetivo: {dist_objetivo:+.1f}%\n\n"
+            "  *Zonas clave — 75% capital:*\n"
         )
 
         for precio, pct, desc in PRECIOS_CLAVE:
             dist = ((btc_actual - precio) / precio) * 100
-            estado = "✅ ALCANZADO" if btc_actual <= precio * 1.01 else f"{dist:+.1f}%"
-            msg += f"   • ${precio:,} → {pct*100:.0f}% capital ({estado})\n"
-
-        msg += "\n   *DCA Semanal (25% capital):*\n"
-        msg += "   1% del capital por semana durante 25 semanas\n\n"
-
-        if alertas:
-            msg += "⚠️ *ALERTAS DE ENTRADA*\n"
-            msg += "\n".join(alertas) + "\n\n"
+            if btc_actual <= precio * 1.01:
+                estado = "✅"
+            elif dist <= 5:
+                estado = "🔔"
+            else:
+                estado = "⏳"
+            msg += f"  {estado} `${precio:,}` → {pct*100:.0f}% capital   ({dist:+.1f}%)\n"
 
         msg += (
-            "━━━━━━━━━━━━━━━━━━━━━━\n"
-            "🧠 *ÍNDICE DE SENTIMIENTO*\n"
-            f"   {sentimiento_valor}/100 — {sentimiento_texto}\n\n"
-            "🤖 *ANÁLISIS SENTINEL*\n"
-            f"   {analisis}\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n"
-            "✅ _Reporte Automatizado_"
+            "\n  *DCA Semanal — 25% capital:*\n"
+            "  1% semanal · 25 semanas\n\n"
+            "  *Estado actual del plan:*\n"
+            f"  {info_zona}\n\n"
+
+            "🧠  *SENTIMIENTO DEL MERCADO*\n"
+            f"  `{barra}`\n"
+            f"  {sentimiento_valor}/100 — {sentimiento_texto}\n\n"
+
+            "🤖  *ANÁLISIS SENTINEL*\n"
+            f"  {analisis}\n"
         )
 
         url_tg = f"https://api.telegram.org/bot{tg_token}/sendMessage"
