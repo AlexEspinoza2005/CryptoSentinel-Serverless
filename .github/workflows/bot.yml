@@ -1,24 +1,24 @@
 name: CryptoSentinel-Serverless
 
-
 on:
   schedule:
-    # 08:00 AM en Ecuador
+    #  08:00 AM hora Ecuador 
     - cron: '0 13 * * *'
-
   workflow_dispatch:
 
 jobs:
   monitor_market:
     runs-on: ubuntu-latest
     
-   
     permissions:
       contents: write
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+      
+          fetch-depth: 0 
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -32,7 +32,6 @@ jobs:
 
       - name: Run CryptoSentinel Engine
         env:
-         
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python main.py
@@ -42,5 +41,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "🤖 CryptoSentinel: Automatic market pulse update" || echo "No changes to commit"
-          git push
+          git commit -m "🤖 CryptoSentinel: Automatic strategy update" || echo "No changes to commit"
+          # Sincronización forzada para evitar conflictos de edición manual
+          git pull --rebase origin master
+          git push origin master
