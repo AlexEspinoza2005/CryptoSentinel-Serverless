@@ -1,13 +1,11 @@
 name: CryptoSentinel-Serverless
 on:
   schedule:
-    #  08:00 AM hora Ecuador 
     - cron: '0 13 * * *'
   workflow_dispatch:
 jobs:
   monitor_market:
     runs-on: ubuntu-latest
-    
     permissions:
       contents: write
     steps:
