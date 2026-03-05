@@ -16,7 +16,6 @@ PRECIOS_CLAVE = [
 ]
 PRECIO_MEDIO_OBJETIVO = 61200
 
-
 def get_market_data():
     try:
         url_price = (
@@ -40,18 +39,16 @@ def get_market_data():
         return None, None, None
 
 def zona_btc_activa(btc_actual):
-    """Devuelve la zona del plan más cercana y su info."""
     for precio, pct, desc in PRECIOS_CLAVE:
         distancia = ((btc_actual - precio) / precio) * 100
         if -2 <= distancia <= 3:
-            return f"🎯 En zona `${precio:,}` → invertir *{pct*100:.0f}%* capital\n   ↳ {desc}"
+            return f"🎯 En zona ${precio:,} — invertir *{pct*100:.0f}%* capital\n  {desc}"
         elif -8 <= distancia < -2:
-            return f"📍 Aprox. a `${precio:,}` ({pct*100:.0f}% capital) — faltan {abs(distancia):.1f}%"
-    # Ninguna zona activa, mostrar la próxima por debajo
+            return f"📍 Aprox. a ${precio:,} ({pct*100:.0f}% capital) — faltan {abs(distancia):.1f}%"
     for precio, pct, desc in PRECIOS_CLAVE:
         if btc_actual > precio:
             distancia = ((btc_actual - precio) / precio) * 100
-            return f"⏳ Próxima zona: `${precio:,}` ({pct*100:.0f}% capital) — {distancia:+.1f}% lejos"
+            return f"⏳ Proxima zona: ${precio:,} ({pct*100:.0f}% capital) — {distancia:+.1f}% lejos"
     return "⏳ BTC por encima de todas las zonas del plan"
 
 def barra_sentimiento(valor):
@@ -112,23 +109,23 @@ def main():
             "📊  *MERCADO EN TIEMPO REAL*\n\n"
 
             f"₿  *Bitcoin*\n"
-            f"   `${btc_actual:>12,.2f}`   {btc['usd_24h_change']:+.2f}%\n"
+            f"   ${btc_actual:,.2f}  ({btc['usd_24h_change']:+.2f}%)\n"
             f"   MA7: {tendencia_btc}\n\n"
 
             f"🔷  *Ethereum*\n"
-            f"   `${eth['usd']:>12,.2f}`   {eth['usd_24h_change']:+.2f}%\n\n"
+            f"   ${eth['usd']:,.2f}  ({eth['usd_24h_change']:+.2f}%)\n\n"
 
             f"🌐  *Solana*\n"
-            f"   `${sol['usd']:>12,.2f}`   {sol['usd_24h_change']:+.2f}%\n\n"
+            f"   ${sol['usd']:,.2f}  ({sol['usd_24h_change']:+.2f}%)\n\n"
 
             f"🟡  *BNB*\n"
-            f"   `${bnb['usd']:>12,.2f}`   {bnb['usd_24h_change']:+.2f}%\n\n"
+            f"   ${bnb['usd']:,.2f}  ({bnb['usd_24h_change']:+.2f}%)\n\n"
 
             f"💧  *XRP*\n"
-            f"   `${xrp['usd']:>12,.4f}`   {xrp['usd_24h_change']:+.2f}%\n\n"
+            f"   ${xrp['usd']:,.4f}  ({xrp['usd_24h_change']:+.2f}%)\n\n"
 
             "📋  *ESTRATEGIA BEARMARKET 2026*\n"
-            f"  Objetivo precio medio: `${PRECIO_MEDIO_OBJETIVO:,}`\n"
+            f"  Objetivo precio medio: ${PRECIO_MEDIO_OBJETIVO:,}\n"
             f"  BTC vs objetivo: {dist_objetivo:+.1f}%\n\n"
             "  *Zonas clave — 75% capital:*\n"
         )
@@ -141,7 +138,7 @@ def main():
                 estado = "🔔"
             else:
                 estado = "⏳"
-            msg += f"  {estado} `${precio:,}` → {pct*100:.0f}% capital   ({dist:+.1f}%)\n"
+            msg += f"  {estado} ${precio:,} — {pct*100:.0f}% capital  ({dist:+.1f}%)\n"
 
         msg += (
             "\n  *DCA Semanal — 25% capital:*\n"
@@ -150,7 +147,7 @@ def main():
             f"  {info_zona}\n\n"
 
             "🧠  *SENTIMIENTO DEL MERCADO*\n"
-            f"  `{barra}`\n"
+            f"  {barra}\n"
             f"  {sentimiento_valor}/100 — {sentimiento_texto}\n\n"
 
             "🤖  *ANÁLISIS SENTINEL*\n"
