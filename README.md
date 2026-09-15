@@ -191,4 +191,4 @@ jobs:
 **Alex Espinoza**  
 - GitHub: [@AlexEspinoza2005](https://github.com/AlexEspinoza2005)  
 - Email: [alexespinozacangas2018@gmail.com](mailto:alexespinozacangas2018@gmail.com)  
-- Education: Software Engineering Student — PUCE (Quito, Ecuador)
+- Education: Software Engineering Student — Universidad Técnica del Norte (UTN, Ibarra - Ecuador)
